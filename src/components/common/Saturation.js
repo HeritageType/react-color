@@ -7,6 +7,8 @@ export class Saturation extends (PureComponent || Component) {
   constructor(props) {
     super(props)
 
+    this.displayHsv = props.hsv
+
     this.throttle = throttle((fn, data, e) => {
       fn(data, e)
     }, 50)
@@ -15,6 +17,17 @@ export class Saturation extends (PureComponent || Component) {
   componentWillUnmount() {
     this.throttle.cancel()
     this.unbindEventListeners()
+  }
+
+  componentWillReceiveProps = (props) => {
+    if (props.hsv) {
+      const margin = 0.001
+      const diffS = Math.abs(props.hsv.s - this.displayHsv.s)
+      const diffV = Math.abs(props.hsv.v - this.displayHsv.v)
+      if (diffS > margin && diffV > margin) {
+        this.displayHsv = props.hsv
+      }
+    }
   }
 
   getContainerRenderWindow() {
@@ -26,10 +39,16 @@ export class Saturation extends (PureComponent || Component) {
     return renderWindow
   }
 
+  calculateChange = (e) => {
+    const change = saturation.calculateChange(e, this.props.hsl, this.container)
+    this.displayHsv = change
+    return change
+  }
+
   handleChange = (e) => {
     typeof this.props.onChange === 'function' && this.throttle(
       this.props.onChange,
-      saturation.calculateChange(e, this.props.hsl, this.container),
+      this.calculateChange(e),
       e,
     )
   }
@@ -71,8 +90,8 @@ export class Saturation extends (PureComponent || Component) {
         },
         pointer: {
           position: 'absolute',
-          top: `${ -(this.props.hsv.v * 100) + 100 }%`,
-          left: `${ this.props.hsv.s * 100 }%`,
+          top: `${ -(this.displayHsv.v * 100) + 100 }%`,
+          left: `${ this.displayHsv.s * 100 }%`,
           cursor: 'default',
         },
         circle: {
